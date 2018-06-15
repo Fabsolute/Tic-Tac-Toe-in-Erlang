@@ -1,0 +1,11 @@
+{application, xox, [
+  {description, "XoX"},
+  {vsn, "0.0.1"},
+  {modules, []},
+  {registered, [xox_connection]},
+  {applications, [
+    cowboy
+  ]},
+  {mod, {xox_app, []}},
+  {env, []}
+]}.
