@@ -8,11 +8,19 @@
 %%%-------------------------------------------------------------------
 -author("ahmetturk").
 
--record(state, {
-  connections = []
-}).
-
 -record(connection, {
   pid = undefined,
-  username = undefined
+  username = undefined,
+  state = waiting
+}).
+
+-record(game, {
+  player1 = null,
+  player2 = null,
+  player1_marker = null,
+  game_table = [
+    null, null, null,
+    null, null, null,
+    null, null, null
+  ]
 }).

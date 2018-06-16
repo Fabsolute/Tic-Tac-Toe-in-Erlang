@@ -52,13 +52,12 @@
         }
 
         function sendTxt() {
-            if (websocket.readyState == websocket.OPEN) {
-                txt = $("#send_txt").val();
-                websocket.send(txt);
-                showScreen('sending: ' + txt);
-            } else {
-                showScreen('websocket is not connected');
-            }
+            var txt = $("#send_txt").val();
+            var message = {
+                method: "message",
+                message: txt
+            };
+            send(message);
         }
 
         function onOpen(evt) {
@@ -86,6 +85,34 @@
         function clearScreen() {
             $('#output').html("");
         }
+
+        function auth() {
+            var name = prompt("username");
+            var message = {
+                method: "auth",
+                "username": name
+            };
+            send(message);
+        }
+
+        function findMatch() {
+            var marker = prompt("x or o");
+            var message = {
+                method: "find-match",
+                "marker": marker
+            };
+            send(message);
+        }
+
+        function send(message) {
+            if (websocket.readyState == websocket.OPEN) {
+                var txt = JSON.stringify(message);
+                websocket.send(txt);
+                showScreen('sending: ' + txt);
+            } else {
+                showScreen('websocket is not connected');
+            }
+        }
     </script>
 </head>
 
@@ -106,6 +133,12 @@
         <p>
             <input type='text' id="send_txt" value=></input>
             <button type="button" onclick="sendTxt();">send</button>
+        </p>
+    </div>
+    <div id="game">
+        <p>
+            <button type="button" onclick="auth();">auth</button>
+            <button type="button" onclick="findMatch();">find match</button>
         </p>
     </div>
 

@@ -11,7 +11,7 @@
 
 -behavior(gen_server).
 
--export([connected/0, disconnected/0, json_handle/1, send_all/1, send_all/2]).
+-export([connected/0, disconnected/0, json_handle/1, send_all/1, send_all/2, send/2]).
 -export([start_link/0, start/0, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2]).
 -include("xox.hrl").
@@ -42,6 +42,9 @@ send_all(Message) ->
 send_all(Message, Pid) ->
   gen_server:cast(?MODULE, {send_all, Pid, Message}).
 
+send(#connection{pid = Pid}, Message) ->
+  Pid ! {text, Message}.
+
 %% Gen server
 
 start() ->
@@ -56,11 +59,10 @@ stop() ->
 % implementations
 
 init([]) ->
-  {ok, #state{}}.
+  {ok, []}.
 
 handle_call({handle, Pid, Method, Request}, _From, State) ->
-  io:fwrite("handle ~p connections ~p~n", [Pid, State#state.connections]),
-  {Pid, Connection} = lists:keyfind(Pid, 1, State#state.connections),
+  {Pid, Connection} = lists:keyfind(Pid, 1, State),
   xox_request_handler:Method(Connection, Request, State);
 
 handle_call(_Request, _From, State) ->
@@ -68,15 +70,15 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({connected, Pid}, State) ->
   io:fwrite("Connected ~p~n", [Pid]),
-  {noreply, State#state{connections = [{Pid, #connection{pid = Pid}} | State#state.connections]}};
+  {noreply, [{Pid, #connection{pid = Pid}} | State]};
 
 handle_cast({disconnected, Pid}, State) ->
   io:fwrite("Disonnected ~p~n", [Pid]),
-  Connections = lists:keydelete(Pid, 1, State#state.connections),
-  {noreply, State#state{connections = Connections}};
+  Connections = lists:keydelete(Pid, 1, State),
+  {noreply, Connections};
 
 handle_cast({send_all, Pid, Message}, State) ->
-  {Pid, Connection} = lists:keyfind(Pid, 1, State#state.connections),
+  {Pid, Connection} = lists:keyfind(Pid, 1, State),
   Head = case Connection#connection.username of
            undefined ->
              "anonymous: ";
@@ -87,13 +89,12 @@ handle_cast({send_all, Pid, Message}, State) ->
   lists:foreach(
     fun(User) ->
       case User of
-        {UserPid, _} ->
-          io:fwrite("Send to pid ~p~n", [UserPid]),
-          UserPid ! {text, Content};
+        {_, UserConnection} ->
+          send(UserConnection, Content);
         _ -> ok
       end
     end,
-    State#state.connections
+    State
   ),
   {noreply, State};
 
@@ -108,6 +109,8 @@ get_method(Request) ->
       auth;
     <<"message">> ->
       message;
+    <<"find-match">> ->
+      find_match;
     _ ->
       undefined
   end.
